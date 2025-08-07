@@ -1,0 +1,9 @@
+{
+  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "editor.formatOnType": false, // 必需
+  "editor.formatOnPaste": true, // 可选
+  "editor.formatOnSave": true, // 可选
+  "editor.formatOnSaveMode": "file", // 保存时格式化必需
+  "files.autoSave": "onFocusChange", // 可选但推荐
+  "vs-code-prettier-eslint.prettierLast": false // 设置为 "true" 可让 'prettier' 最后运行而非首先运行
+}
