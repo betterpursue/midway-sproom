@@ -89,9 +89,9 @@ export class ActivityService {
       throw new Error('活动不存在');
     }
 
-    // 检查是否有已确认报名的用户
-    const confirmedCount = await this.activityRegistrationDAO.countConfirmedRegistrations(id);
-    if (confirmedCount > 0) {
+    // 检查是否有报名用户
+    const registrations = await this.activityRegistrationDAO.findByActivityId(id);
+    if (registrations[0].length > 0) {
       throw new Error('该活动已有用户报名，无法删除');
     }
 
@@ -211,7 +211,6 @@ export class ActivityService {
       startTime: activity.startTime,
       endTime: activity.endTime,
       location: activity.location,
-      price: activity.price,
       currentParticipants: activity.currentParticipants,
       maxParticipants: activity.maxParticipants,
       status: activity.status,

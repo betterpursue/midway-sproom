@@ -23,9 +23,6 @@ export class CreateActivityDTO {
   @Rule(RuleType.string().min(2).max(200).required())
   location: string;
 
-  @Rule(RuleType.number().min(0).required())
-  price: number;
-
   @Rule(RuleType.number().min(1).max(100).required())
   maxParticipants: number;
 
@@ -54,9 +51,6 @@ export class UpdateActivityDTO {
 
   @Rule(RuleType.string().min(2).max(200))
   location?: string;
-
-  @Rule(RuleType.number().min(0))
-  price?: number;
 
   @Rule(RuleType.number().min(1).max(100))
   maxParticipants?: number;
@@ -105,7 +99,6 @@ export class ActivityResponseDTO {
   startTime: Date;
   endTime: Date;
   location: string;
-  price: number;
   currentParticipants: number;
   maxParticipants: number;
   status: ActivityStatus;

@@ -3,11 +3,8 @@ import { User } from './user.entity';
 import { Activity } from './activity.entity';
 
 export enum RegistrationStatus {
-  PENDING = 'pending',
-  CONFIRMED = 'confirmed',
-  PAID = 'paid',
-  CANCELLED = 'cancelled',
-  REFUNDED = 'refunded'
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED'
 }
 
 /**
@@ -27,14 +24,10 @@ export class ActivityRegistration {
   @JoinColumn({ name: 'activity_id' })
   activity: Activity;
 
-  @Column({ length: 50 })
-  orderNo: string;
+
 
   @Column({ length: 20, default: RegistrationStatus.PENDING })
   status: RegistrationStatus;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amount: number;
 
   @Column({ type: 'text', nullable: true })
   notes: string;

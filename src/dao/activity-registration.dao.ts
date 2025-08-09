@@ -3,7 +3,6 @@ import { InjectEntityModel } from '@midwayjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   ActivityRegistration,
-  RegistrationStatus,
 } from '../filter/entity/activity-registration.entity';
 
 /**
@@ -39,39 +38,22 @@ export class ActivityRegistrationDAO {
     });
   }
 
-  /**
-   * 根据订单号查询报名记录
-   * @param orderNo 订单号
-   * @returns 报名实体
-   */
-  async findByOrderNo(orderNo: string): Promise<ActivityRegistration | null> {
-    return await this.registrationRepository.findOne({
-      where: { orderNo },
-      relations: ['user', 'activity'],
-    });
-  }
+
 
   /**
    * 查询用户的报名记录
    * @param userId 用户ID
-   * @param status 报名状态
    * @param page 页码
    * @param limit 每页数量
    * @returns 报名列表和总数
    */
   async findByUserId(
     userId: number,
-    status?: RegistrationStatus,
     page = 1,
     limit = 10
   ): Promise<[ActivityRegistration[], number]> {
-    const where: any = { user: { id: userId } };
-    if (status) {
-      where.status = status;
-    }
-
     return await this.registrationRepository.findAndCount({
-      where,
+      where: { user: { id: userId } },
       relations: ['user', 'activity'],
       skip: (page - 1) * limit,
       take: limit,
@@ -82,24 +64,17 @@ export class ActivityRegistrationDAO {
   /**
    * 查询活动的报名记录
    * @param activityId 活动ID
-   * @param status 报名状态
    * @param page 页码
    * @param limit 每页数量
    * @returns 报名列表和总数
    */
   async findByActivityId(
     activityId: number,
-    status?: RegistrationStatus,
     page = 1,
     limit = 10
   ): Promise<[ActivityRegistration[], number]> {
-    const where: any = { activity: { id: activityId } };
-    if (status) {
-      where.status = status;
-    }
-
     return await this.registrationRepository.findAndCount({
-      where,
+      where: { activity: { id: activityId } },
       relations: ['user', 'activity'],
       skip: (page - 1) * limit,
       take: limit,
@@ -126,19 +101,7 @@ export class ActivityRegistrationDAO {
     return count > 0;
   }
 
-  /**
-   * 更新报名状态
-   * @param id 报名ID
-   * @param status 新状态
-   * @returns 更新后的报名实体
-   */
-  async updateStatus(
-    id: number,
-    status: RegistrationStatus
-  ): Promise<ActivityRegistration | null> {
-    await this.registrationRepository.update(id, { status });
-    return await this.findById(id);
-  }
+
 
   /**
    * 根据用户和活动ID查找报名记录
@@ -170,17 +133,15 @@ export class ActivityRegistrationDAO {
     return await this.findById(id);
   }
 
+
+
   /**
-   * 统计活动确认报名人数
-   * @param activityID 活动ID
-   * @returns 确认报名人数
+   * 删除报名记录
+   * @param id 报名ID
+   * @returns 是否删除成功
    */
-  async countConfirmedRegistrations(activityId: number): Promise<number> {
-    return await this.registrationRepository.count({
-      where: {
-        activity: { id: activityId },
-        status: RegistrationStatus.CONFIRMED,
-      },
-    });
+  async deleteById(id: number): Promise<boolean> {
+    const result = await this.registrationRepository.delete(id);
+    return result.affected > 0;
   }
 }

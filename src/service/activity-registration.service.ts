@@ -3,7 +3,7 @@ import { ActivityRegistrationDAO } from '../dao/activity-registration.dao';
 import { ActivityDAO } from '../dao/activity.dao';
 import { UserDAO } from '../dao/user.dao';
 import { ActivityRegistration, RegistrationStatus } from '../filter/entity/activity-registration.entity';
-import { CreateRegistrationDTO, RegistrationResponseDTO, RegistrationQueryDTO, UpdateRegistrationStatusDTO } from '../dto/registration.dto';
+import { CreateRegistrationDTO, RegistrationResponseDTO, RegistrationQueryDTO } from '../dto/registration.dto';
 import { ActivityStatus } from '../filter/entity/activity.entity';
 
 /**
@@ -59,15 +59,10 @@ export class ActivityRegistrationService {
       throw new Error('活动人数已满');
     }
 
-    // 生成订单号
-    const orderNo = this.generateOrderNo();
-
     // 创建活动报名记录
     const registration = await this.registrationDAO.create({
       user,
       activity,
-      orderNo,
-      amount: activity.price,
       status: RegistrationStatus.PENDING,
       notes
     });
@@ -93,9 +88,7 @@ export class ActivityRegistrationService {
     }
 
     // 检查是否可以更新（只允许更新待确认状态的报名）
-    if (registration.status === RegistrationStatus.CANCELLED) {
-      throw new Error('已取消的报名无法更新');
-    }
+    // 由于现在直接删除报名记录，此检查不再需要
 
     // 更新报名信息
     const updatedRegistration = await this.registrationDAO.updateRegistration(registration.id, updateData);
@@ -109,7 +102,7 @@ export class ActivityRegistrationService {
    * @returns 报名记录列表和总数
    */
   async getUserRegistrations(userId: number, query: RegistrationQueryDTO): Promise<{ registrations: RegistrationResponseDTO[]; total: number }> {
-    const [registrations, total] = await this.registrationDAO.findByUserId(userId, query.status, query.page, query.limit);
+    const [registrations, total] = await this.registrationDAO.findByUserId(userId, query.page, query.limit);
     return {
       registrations: registrations.map(registration => this.toResponseDTO(registration)),
       total
@@ -129,77 +122,80 @@ export class ActivityRegistrationService {
       throw new Error('活动不存在');
     }
 
-    const [registrations, total] = await this.registrationDAO.findByActivityId(activityId, query.status, query.page, query.limit);
+    const [registrations, total] = await this.registrationDAO.findByActivityId(activityId, query.page, query.limit);
     return {
       registrations: registrations.map(registration => this.toResponseDTO(registration)),
       total
     };
   }
 
+
+
+
+
   /**
-   * 更新报名状态
+   * 更新报名状态（管理员专用）
    * @param registrationId 报名ID
-   * @param statusData 状态数据
-   * @param userId 操作用户ID（预留用于权限校验）
-   * @returns 更新后的报名数据
+   * @param newStatus 新状态
+   * @returns 更新后的报名响应数据
    */
-  async updateRegistrationStatus(registrationId: number, statusData: UpdateRegistrationStatusDTO, userId: number): Promise<RegistrationResponseDTO | null> {
+  async updateRegistrationStatus(registrationId: number, newStatus: string): Promise<RegistrationResponseDTO> {
     const registration = await this.registrationDAO.findById(registrationId);
     if (!registration) {
       throw new Error('报名记录不存在');
     }
 
-    // TODO: 添加权限校验逻辑
-    // 需要验证用户是否有权限更新此报名状态
+    // 使用repository的update方法直接更新
+    await this.registrationDAO.registrationRepository.update(registrationId, {
+      status: newStatus as RegistrationStatus,
+      updatedAt: new Date()
+    });
     
-    const updatedRegistration = await this.registrationDAO.updateStatus(registrationId, statusData.status);
-    return updatedRegistration ? this.toResponseDTO(updatedRegistration) : null;
+    // 重新获取更新后的记录
+    const updatedRegistration = await this.registrationDAO.findById(registrationId);
+    return this.toResponseDTO(updatedRegistration);
   }
 
   /**
-   * 取消报名
+   * 删除报名记录
    * @param registrationId 报名ID
    * @param userId 用户ID
-   * @returns 是否取消成功
+   * @returns 是否删除成功
    */
-  async cancelRegistration(registrationId: number, userId: number): Promise<boolean> {
+  async deleteRegistration(registrationId: number, userId: number): Promise<boolean> {
     const registration = await this.registrationDAO.findById(registrationId);
     if (!registration) {
       throw new Error('报名记录不存在');
     }
 
-    // 验证用户权限
-    if (registration.user.id !== userId) {
-      throw new Error('您无权取消他人的报名');
+    // 获取用户信息以验证权限
+    const user = await this.userDAO.findById(userId);
+    if (!user) {
+      throw new Error('用户不存在');
     }
 
-    // 检查状态
-    if (registration.status === RegistrationStatus.PAID) {
-      throw new Error('已支付的报名无法取消，请联系客服');
+    // 验证用户权限 - 普通用户只能删除自己的记录，管理员可以删除任何记录
+    const registrationUserId = Number(registration.user.id);
+    const currentUserId = Number(userId);
+    
+    if (registrationUserId !== currentUserId && user.role !== 'admin') {
+      throw new Error('您无权删除此报名记录');
     }
 
-    if (registration.status === RegistrationStatus.CANCELLED) {
-      throw new Error('报名已取消');
+    // 检查报名状态 - 已确认的状态不能取消报名（管理员除外）
+    if (registration.status === RegistrationStatus.CONFIRMED && user.role !== 'admin') {
+      throw new Error('报名信息已确认，无法取消报名');
     }
-
-    // 更新状态
-    await this.registrationDAO.updateStatus(registrationId, RegistrationStatus.CANCELLED);
 
     // 减少活动参与人数
     await this.activityDAO.decrementParticipants(registration.activity.id);
 
-    return true;
+    // 删除报名记录
+    const deleted = await this.registrationDAO.deleteById(registrationId);
+    return deleted;
   }
 
-  /**
-   * 生成订单号
-   * @returns 订单号字符串
-   */
-  private generateOrderNo(): string {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-    return `ORD${timestamp}${random}`;
-  }
+
 
   /**
    * 将报名实体转换为响应DTO
@@ -209,11 +205,8 @@ export class ActivityRegistrationService {
   private toResponseDTO(registration: ActivityRegistration): RegistrationResponseDTO {
     return {
       id: registration.id,
-      orderNo: registration.orderNo,
       status: registration.status,
-      amount: registration.amount,
       notes: registration.notes,
-      createdAt: registration.createdAt,
       updatedAt: registration.updatedAt,
       activity: {
         id: registration.activity.id,
@@ -222,12 +215,14 @@ export class ActivityRegistrationService {
         startTime: registration.activity.startTime,
         endTime: registration.activity.endTime,
         location: registration.activity.location,
-        price: registration.activity.price
+        imageUrl: registration.activity.imageUrl
       },
       user: {
         id: registration.user.id,
         username: registration.user.username,
-        realName: registration.user.realName
+        realName: registration.user.realName,
+        phone: registration.user.phone,
+        email: registration.user.email
       }
     };
   }

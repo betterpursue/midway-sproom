@@ -70,7 +70,7 @@ export class AuthMiddleware implements IMiddleware<Context, NextFunction> {
         }
         
         ctx.state.user = payload;
-        console.log('[Auth] 认证通过，继续处理请求');
+        console.log('[Auth] 认证通过，用户信息:', { userId: payload.userId, username: payload.username });
         await next();
       } catch (error) {
         console.error('[Auth] Token验证失败:', error.message);

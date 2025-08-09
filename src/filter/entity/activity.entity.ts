@@ -48,8 +48,7 @@ export class Activity {
   @Column({ length: 200 })
   location: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+
 
   @Column({ default: 0 })
   currentParticipants: number;

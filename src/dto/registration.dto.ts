@@ -17,11 +17,8 @@ export class CreateRegistrationDTO {
  */
 export class RegistrationResponseDTO {
   id: number;
-  orderNo: string;
   status: RegistrationStatus;
-  amount: number;
   notes?: string;
-  createdAt: Date;
   updatedAt: Date;
   activity: {
     id: number;
@@ -30,12 +27,14 @@ export class RegistrationResponseDTO {
     startTime: Date;
     endTime: Date;
     location: string;
-    price: number;
+    imageUrl?: string;
   };
   user: {
     id: number;
     username: string;
     realName?: string;
+    phone?: string;
+    email?: string;
   };
 }
 
@@ -43,9 +42,6 @@ export class RegistrationResponseDTO {
  * 报名查询参数DTO
  */
 export class RegistrationQueryDTO {
-  @Rule(RuleType.string().valid(...Object.values(RegistrationStatus)))
-  status?: RegistrationStatus;
-
   @Rule(RuleType.number().min(1).default(1))
   page: number;
 
@@ -53,13 +49,7 @@ export class RegistrationQueryDTO {
   limit: number;
 }
 
-/**
- * 更新报名状态DTO
- */
-export class UpdateRegistrationStatusDTO {
-  @Rule(RuleType.string().valid(...Object.values(RegistrationStatus)).required())
-  status: RegistrationStatus;
-}
+
 
 /**
  * 更新报名信息DTO

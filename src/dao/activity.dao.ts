@@ -126,7 +126,7 @@ export class ActivityDAO {
     const result = await this.activityRepository
       .createQueryBuilder()
       .update(Activity)
-      .set({ currentParticipants: () => `GREATEST("currentParticipants" - ${decrement}, 0)` })
+      .set({ currentParticipants: () => `CASE WHEN "currentParticipants" - ${decrement} < 0 THEN 0 ELSE "currentParticipants" - ${decrement} END` })
       .where('id = :id', { id })
       .execute();
     return result.affected > 0;

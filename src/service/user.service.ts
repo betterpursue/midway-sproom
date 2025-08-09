@@ -90,23 +90,23 @@ export class UserService {
     return user ? this.toResponseDTO(user) : null;
   }
 
-  /**
-   * 增加用户积分
-   * @param id 用户ID
-   * @param points 增加的积分
-   * @returns 是否成功
-   */
-  async addCreditPoints(id: number, points: number): Promise<boolean> {
-    const user = await this.userDAO.findById(id);
-    if (!user) {
-      return false;
-    }
+  // /**
+  //  * 增加用户积分
+  //  * @param id 用户ID
+  //  * @param points 增加的积分
+  //  * @returns 是否成功
+  //  */
+  // async addCreditPoints(id: number, points: number): Promise<boolean> {
+  //   const user = await this.userDAO.findById(id);
+  //   if (!user) {
+  //     return false;
+  //   }
 
-    await this.userDAO.update(id, {
-      creditPoints: user.creditPoints + points
-    });
-    return true;
-  }
+  //   await this.userDAO.update(id, {
+  //     creditPoints: user.creditPoints + points
+  //   });
+  //   return true;
+  // }
 
   /**
    * 加密密码
